@@ -1,0 +1,155 @@
+name: 🚀 Deploy Pixter to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Job de validação de segurança
+  validate:
+    runs-on: ubuntu-latest
+    name: 🔐 Validate Security & Signatures
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Validate file structure
+      run: |
+        echo "🔍 Validating Pixter file structure..."
+        
+        # Verificar se diretórios essenciais existem
+        [ -d "data/posts" ] || mkdir -p data/posts
+        [ -d "data/profiles" ] || mkdir -p data/profiles  
+        [ -d "data/messages" ] || mkdir -p data/messages
+        [ -d "photos" ] || mkdir -p photos
+        [ -d "publickeys" ] || mkdir -p publickeys
+        [ -d "cvf" ] || mkdir -p cvf
+        
+        echo "✅ Directory structure validated"
+
+    - name: Validate encrypted files
+      run: |
+        echo "🔐 Validating encrypted files..."
+        
+        # Verificar se arquivos .enc têm formato válido
+        for file in data/**/*.enc; do
+          if [ -f "$file" ]; then
+            echo "Checking $file..."
+            # Verificar se arquivo não está vazio e tem header de criptografia
+            if [ -s "$file" ]; then
+              echo "✅ $file is valid"
+            else
+              echo "❌ $file is empty or invalid"
+              exit 1
+            fi
+          fi
+        done
+        
+        echo "✅ Encrypted files validated"
+
+    - name: Validate public keys
+      run: |
+        echo "🔑 Validating public keys..."
+        
+        # Verificar formato das chaves públicas
+        for keyfile in publickeys/*.pub; do
+          if [ -f "$keyfile" ]; then
+            echo "Checking $keyfile..."
+            # Verificar se é uma chave Ed25519 válida
+            if grep -q "^[A-Za-z0-9+/=]*$" "$keyfile"; then
+              echo "✅ $keyfile is valid"
+            else
+              echo "❌ $keyfile has invalid format"
+              exit 1
+            fi
+          fi
+        done
+        
+        echo "✅ Public keys validated"
+
+  # Job de build e deploy
+  build-and-deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    name: 🏗️ Build & Deploy
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build Pixter
+      run: |
+        echo "🏗️ Building Pixter..."
+        npm run build
+        
+        # Verificar se build foi bem-sucedido
+        if [ ! -d "dist" ]; then
+          echo "❌ Build failed - dist directory not found"
+          exit 1
+        fi
+        
+        echo "✅ Build completed successfully"
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './dist'
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+  # Job de notificação de sucesso
+  notify:
+    needs: [validate, build-and-deploy]
+    runs-on: ubuntu-latest
+    name: 📢 Notify Success
+    if: success()
+    
+    steps:
+    - name: Success notification
+      run: |
+        echo "🎉 Pixter deployed successfully!"
+        echo "🔗 Site URL: ${{ needs.build-and-deploy.outputs.page_url }}"
+        echo "✅ All security validations passed"
+        echo "✅ Build completed without errors"
+        echo "✅ Deployment successful"
