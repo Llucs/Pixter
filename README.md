@@ -1,4 +1,4 @@
-# 🎨 Pixter - Rede Social Minimalista e Segura
+# 🎨 Pixter - Rede Social Minimalista e Segura 
 
 > **Pixter** - Uma rede social moderna, descentralizada e segura que roda diretamente do GitHub com criptografia avançada e design minimalista.
 
