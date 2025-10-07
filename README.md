@@ -1,6 +1,6 @@
 # 🎨 Pixter - Rede Social Minimalista e Segura
 
-> **Instagram 2.0** - Uma rede social moderna, descentralizada e segura que roda diretamente do GitHub com criptografia avançada e design minimalista.
+> **Pixter** - Uma rede social moderna, descentralizada e segura que roda diretamente do GitHub com criptografia avançada e design minimalista.
 
 ![Pixter Preview](https://via.placeholder.com/800x400/6366f1/ffffff?text=Pixter+-+Rede+Social+Minimalista)
 
