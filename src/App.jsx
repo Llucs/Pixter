@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Heart, MessageCircle, Share, Settings, User, Home, Search, PlusSquare, Moon, Sun, Play, Pause, ChevronLeft, ChevronRight, X, Plus, Key, Shield, Lock, Image as ImageIcon, Smile } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
@@ -15,7 +15,8 @@ import './App.css'
 
 // Componente de Layout Principal
 function Layout({ children, currentUser, darkMode, toggleDarkMode, onLogout }) {
-  const [activeTab, setActiveTab] = useState('home')
+  const location = useLocation();
+  const activeTab = location.pathname === "/Pixter/" ? "home" : location.pathname.replace("/Pixter/", "").split("/")[0];
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'dark' : ''}`}>
@@ -72,26 +73,27 @@ function Layout({ children, currentUser, darkMode, toggleDarkMode, onLogout }) {
           <div className="max-w-4xl mx-auto px-4 py-2">
             <div className="flex justify-around items-center">
               {[
-                { id: 'home', icon: Home, label: 'Feed' },
-                { id: 'search', icon: Search, label: 'Explorar' },
-                { id: 'create', icon: PlusSquare, label: 'Criar' },
-                { id: 'profile', icon: User, label: 'Perfil' },
-                { id: 'settings', icon: Settings, label: 'Config' }
+                { id: 'home', icon: Home, label: 'Feed', path: '/' },
+                { id: 'search', icon: Search, label: 'Explorar', path: '/search' },
+                { id: 'create', icon: PlusSquare, label: 'Criar', path: '/create' },
+                { id: 'profile', icon: User, label: 'Perfil', path: '/profile' },
+                { id: 'settings', icon: Settings, label: 'Config', path: '/settings' }
               ].map((item) => (
-                <Button
-                  key={item.id}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200 ${
-                    activeTab === item.id 
-                      ? 'bg-primary/10 text-primary' 
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                  }`}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span className="text-xs font-medium">{item.label}</span>
-                </Button>
+                <Link to={item.path} key={item.id}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveTab(item.id)}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200 ${
+                      activeTab === item.id 
+                        ? 'bg-primary/10 text-primary' 
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                    }`}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <span className="text-xs font-medium">{item.label}</span>
+                  </Button>
+                </Link>
               ))}
             </div>
           </div>
@@ -158,9 +160,8 @@ function AuthPage({ onLogin }) {
         })
       } else {
         // Cadastro de novo usuário
-        const existingUser = LocalStorage.loadUserData(formData.username)
-        if (existingUser) {
-          setError('Nome de usuário já existe. Escolha outro.')
+        if (LocalStorage.loadUserData(formData.username)) {
+          setError("Nome de usuário já existe. Escolha outro.")
           return
         }
 
@@ -329,30 +330,36 @@ function StoryItem({ story, onClick, isOwn = false }) {
 
 // Componente de Stories Horizontais
 function StoriesBar({ stories, currentUser, onStoryClick, onAddStory }) {
+  const allStories = [
+    {
+      user: currentUser,
+      isAdd: true
+    },
+    ...stories
+  ];
+
   return (
     <div className="mb-6">
       <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-        {/* Adicionar Story */}
-        <StoryItem
-          story={{
-            user: currentUser,
-            isAdd: true
-          }}
-          onClick={onAddStory}
-          isOwn={true}
-        />
-        
-        {/* Stories dos usuários */}
-        {stories.map((story) => (
+        {allStories.length === 1 && allStories[0].isAdd ? (
           <StoryItem
-            key={story.id}
-            story={story}
-            onClick={onStoryClick}
+            story={allStories[0]}
+            onClick={onAddStory}
+            isOwn={true}
           />
-        ))}
+        ) : (
+          allStories.map((story, index) => (
+            <StoryItem
+              key={story.id || `add-${index}`}
+              story={story}
+              onClick={story.isAdd ? onAddStory : onStoryClick}
+              isOwn={story.isAdd}
+            />
+          ))
+        )}
       </div>
     </div>
-  )
+  );
 }
 
 // Componente de Visualização de Story
@@ -532,6 +539,15 @@ function Post({ post, onLike, onComment, onShare }) {
 
 // Componente de Feed Principal
 function Feed({ posts, onLike, onComment, onShare }) {
+  if (posts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+        <ImageIcon className="h-12 w-12 mb-4" />
+        <p className="text-lg font-semibold">Nenhum post disponível</p>
+        <p className="text-sm">Crie um novo post para começar!</p>
+      </div>
+    );
+  }
   return (
     <div>
       {posts.map((post) => (
@@ -752,7 +768,7 @@ function App() {
   const [darkMode, setDarkMode] = useState(false)
   const [activeStory, setActiveStory] = useState(null)
 
-  // Carregar dados iniciais
+    // Carregar dados iniciais e persistentes
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -761,7 +777,7 @@ function App() {
         if (sessionUser) {
           const userData = LocalStorage.loadUserData(sessionUser.username)
           if (userData) {
-            const userCrypto = await UserCrypto.load(userData, sessionUser.password) // Assume que a senha está na sessão
+            const userCrypto = await UserCrypto.load(userData, sessionUser.password)
             setCurrentUser({
               id: userData.username,
               name: sessionUser.username,
@@ -772,17 +788,21 @@ function App() {
               publicKey: userCrypto.keyPair.getPublicKeyBase64(),
               created: userData.created
             })
+
+            // Carregar posts e stories persistentes para o usuário logado
+            const savedPosts = LocalStorage.loadEncryptedData(`${sessionUser.username}_posts`)
+            if (savedPosts) {
+              setPosts(userCrypto.decryptData(savedPosts))
+            }
+            const savedStories = LocalStorage.loadEncryptedData(`${sessionUser.username}_stories`)
+            if (savedStories) {
+              setStories(userCrypto.decryptData(savedStories))
+            }
           }
         }
 
-        // Carregar posts e stories de um arquivo JSON (simulação)
-        const response = await fetch('/index.json')
-        if (!response.ok) {
-          throw new Error('Não foi possível carregar os dados iniciais.')
-        }
-        const data = await response.json()
-        setPosts(data.posts || [])
-        setStories(data.stories || [])
+
+
       } catch (err) {
         setError(err.message)
         console.error("Erro ao carregar dados:", err)
@@ -792,7 +812,29 @@ function App() {
     }
 
     fetchData()
-  }, [])
+  }, []) // Removido currentUser como dependência para evitar loop infinito e garantir carregamento inicial     if (!currentUser) {
+          const response = await fetch('/index.json')
+          if (!response.ok) {
+            // Se index.json não existir, inicializa com arrays vazios
+            setPosts([])
+            setStories([])
+          } else {
+            const data = await response.json()
+            setPosts(data.posts || [])
+            setStories(data.stories || [])
+          }
+        }
+
+      } catch (err) {
+        setError(err.message)
+        console.error("Erro ao carregar dados:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [currentUser]) // Adicionado currentUser como dependência para re-executar quando o usuário loga/desloga
 
   // Gerenciar modo escuro
   useEffect(() => {
@@ -818,31 +860,53 @@ function App() {
 
   const handleLogin = (user) => {
     setCurrentUser(user)
-    LocalStorage.saveSession(user.username, user.crypto.password) // Salva na sessão
+    LocalStorage.saveSession(user.username, user.crypto.password)
+    // Inicializa posts e stories para o novo usuário se não existirem
+    if (!LocalStorage.loadEncryptedData(`${user.username}_posts`)) {
+      LocalStorage.saveEncryptedData(`${user.username}_posts`, user.crypto.encryptData([]))
+    }
+    if (!LocalStorage.loadEncryptedData(`${user.username}_stories`)) {
+      LocalStorage.saveEncryptedData(`${user.username}_stories`, user.crypto.encryptData([]))
+    }
   }
 
   const handleLogout = () => {
     setCurrentUser(null)
+    setPosts([]);
+    setStories([]);
     LocalStorage.clearSession()
   }
 
   const handleLike = (postId) => {
-    setPosts(posts.map(p => 
+    const updatedPosts = posts.map(p => 
       p.id === postId ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : p
-    ))
+    );
+    setPosts(updatedPosts);
+    if (currentUser && currentUser.crypto) {
+      const encryptedPosts = currentUser.crypto.encryptData(updatedPosts);
+      LocalStorage.saveEncryptedData(`${currentUser.username}_posts`, encryptedPosts);
+    }
   }
 
   const handlePostCreated = (newPost) => {
-    setPosts([newPost, ...posts])
-    // Aqui você adicionaria a lógica para salvar o post criptografado
+    const updatedPosts = [newPost, ...posts];
+    setPosts(updatedPosts);
+    if (currentUser && currentUser.crypto) {
+      const encryptedPosts = currentUser.crypto.encryptData(updatedPosts);
+      LocalStorage.saveEncryptedData(`${currentUser.username}_posts`, encryptedPosts);
+    }
   }
 
   const handleStoryClick = (story) => {
     const storyIndex = stories.findIndex(s => s.id === story.id)
     if (storyIndex !== -1) {
       setActiveStory(storyIndex)
-      // Marcar story como visto
-      setStories(stories.map(s => s.id === story.id ? { ...s, viewed: true } : s))
+      const updatedStories = stories.map(s => s.id === story.id ? { ...s, viewed: true } : s);
+      setStories(updatedStories);
+      if (currentUser && currentUser.crypto) {
+        const encryptedStories = currentUser.crypto.encryptData(updatedStories);
+        LocalStorage.saveEncryptedData(`${currentUser.username}_stories`, encryptedStories);
+      }
     }
   }
 

@@ -257,54 +257,105 @@ export class UserCrypto {
 export class LocalStorage {
   static PREFIX = 'pixter_'
   
-  // Salva dados do usuário
+  // S  // Salva dados do usuário
   static saveUserData(username, userData) {
-    const key = `${this.PREFIX}user_${username}`
-    localStorage.setItem(key, JSON.stringify(userData))
+    try {
+      const key = `${this.PREFIX}user_${username}`
+      localStorage.setItem(key, JSON.stringify(userData))
+    } catch (e) {
+      console.error("LocalStorage: Erro ao salvar dados do usuário", e);
+    }
   }
   
   // Carrega dados do usuário
   static loadUserData(username) {
-    const key = `${this.PREFIX}user_${username}`
-    const data = localStorage.getItem(key)
-    return data ? JSON.parse(data) : null
+    try {
+      const key = `${this.PREFIX}user_${username}`
+      const data = localStorage.getItem(key)
+      return data ? JSON.parse(data) : null
+    } catch (e) {
+      console.error("LocalStorage: Erro ao carregar dados do usuário", e);
+      return null;
+    }
   }
   
   // Lista usuários salvos
   static listUsers() {
     const users = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key.startsWith(`${this.PREFIX}user_`)) {
-        const username = key.replace(`${this.PREFIX}user_`, '')
-        users.push(username)
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith(`${this.PREFIX}user_`)) {
+          const username = key.replace(`${this.PREFIX}user_`, "")
+          users.push(username)
+        }
       }
+    } catch (e) {
+      console.error("LocalStorage: Erro ao listar usuários", e);
     }
     return users
   }
   
   // Remove dados do usuário
   static removeUser(username) {
-    const key = `${this.PREFIX}user_${username}`
-    localStorage.removeItem(key)
+    try {
+      const key = `${this.PREFIX}user_${username}`
+      localStorage.removeItem(key)
+    } catch (e) {
+      console.error("LocalStorage: Erro ao remover usuário", e);
+    }
   }
   
   // Salva dados criptografados
   static saveEncryptedData(key, data) {
-    localStorage.setItem(`${this.PREFIX}${key}`, data)
+    try {
+      localStorage.setItem(`${this.PREFIX}${key}`, data)
+    } catch (e) {
+      console.error("LocalStorage: Erro ao salvar dados criptografados", e);
+    }
   }
   
   // Carrega dados criptografados
   static loadEncryptedData(key) {
-    return localStorage.getItem(`${this.PREFIX}${key}`)
+    try {
+      return localStorage.getItem(`${this.PREFIX}${key}`)
+    } catch (e) {
+      console.error("LocalStorage: Erro ao carregar dados criptografados", e);
+      return null;
+    }
   }
 }
 
-// Exporta as classes principais
-export default {
-  UserCrypto,
-  KeyPair,
-  Encryption,
-  LocalStorage,
-  utils
-}
+// Adicionar funções de gerenciamento de sessão à classe LocalStorage
+LocalStorage.saveSession = function(username, password) {
+  try {
+    const sessionData = { username, password };
+    sessionStorage.setItem(`${this.PREFIX}session`, JSON.stringify(sessionData));
+  } catch (e) {
+    console.error("SessionStorage: Erro ao salvar sessão", e);
+  }
+};
+
+LocalStorage.loadSession = function() {
+  try {
+    const data = sessionStorage.getItem(`${this.PREFIX}session`);
+    return data ? JSON.parse(data) : null;
+  } catch (e) {
+    console.error("SessionStorage: Erro ao carregar sessão", e);
+    return null;
+  }
+};
+
+LocalStorage.clearSession = function() {
+  try {
+    sessionStorage.removeItem(`${this.PREFIX}session`);
+  } catch (e) {
+    console.error("SessionStorage: Erro ao limpar sessão", e);
+  }
+};a) : null;
+};
+
+LocalStorage.clearSession = function() {
+  sessionStorage.removeItem(`${this.PREFIX}session`);
+};
+
