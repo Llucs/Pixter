@@ -812,18 +812,7 @@ function App() {
     }
 
     fetchData()
-  }, []) // Removido currentUser como dependência para evitar loop infinito e garantir carregamento inicial     if (!currentUser) {
-          const response = await fetch('/index.json')
-          if (!response.ok) {
-            // Se index.json não existir, inicializa com arrays vazios
-            setPosts([])
-            setStories([])
-          } else {
-            const data = await response.json()
-            setPosts(data.posts || [])
-            setStories(data.stories || [])
-          }
-        }
+  }, []) // Removido currenttext = 
 
       } catch (err) {
         setError(err.message)
