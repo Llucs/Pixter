@@ -283,7 +283,7 @@
   inset: -4px;
   padding: 2px;
   background: linear-gradient(45deg, #ec4899, #8b5cf6, #6366f1);
-  border-radius: 50%;
+  border-radius: 9999px; /* Usar um valor alto para garantir que seja sempre um círculo */
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
