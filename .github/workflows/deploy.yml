@@ -32,6 +32,9 @@ jobs:
       with:
         node-version: '18'
 
+    - name: Install pnpm globally
+      run: npm install -g pnpm
+
     - name: Setup pnpm
       uses: pnpm/action-setup@v3
       with:
@@ -113,6 +116,9 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
+
+    - name: Install pnpm globally
+      run: npm install -g pnpm
 
     - name: Setup pnpm
       uses: pnpm/action-setup@v3
